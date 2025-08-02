@@ -30,6 +30,7 @@
 #### To run zookeeper & kafka:
 
   - bin/windows/zookeeper-server-start.bat config/zookeeper.properties
+  - bin/kafka-server-start.sh config/server.properties
 
 #### Create kafka topic if not already done:
 
@@ -42,6 +43,7 @@
 #### To check the live-streamed data:
 
   - bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic order_feed --from-beginning
+
 
 
 

@@ -38,11 +38,13 @@
 
 #### To simulate generation of dummy stocks:
 
-  - g++ ./ingestion/feed-simulator.cpp -std=c++17 -ljsoncpp -lrdkafka -o ./ingestion/feed-simulator.exe
+  - Compile: g++ ./ingestion/feed-simulator.cpp -std=c++17 -ljsoncpp -lrdkafka -o ./ingestion/feed-simulator.exe
+  - Run: ./ingestion/feed-simulator.exe
 
 #### To check the live-streamed data:
 
   - bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic order_feed --from-beginning
+
 
 
 

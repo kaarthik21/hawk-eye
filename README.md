@@ -27,12 +27,13 @@
 
 ## 📌 Setup
 
-**To run zookeeper & kafka:**
-  - bin/windows/zookeeper-server-start.bat config/zookeeper.properties
-**Create kafka topic if not already done:**
-  - bin/windows/kafka-topics.bat --create --topic order_feed --bootstrap-server localhost:9092
-**To simulate generation of dummy stocks:**
-  - g++ ./ingestion/feed-simulator.cpp -std=c++17 -ljsoncpp -lrdkafka -o ./ingestion/feed-simulator.exe
-**To check the live-streamed data:**
-  - bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic order_feed --from-beginning
+-**To run zookeeper & kafka:**
+  -bin/windows/zookeeper-server-start.bat config/zookeeper.properties
+-**Create kafka topic if not already done:**
+  -bin/windows/kafka-topics.bat --create --topic order_feed --bootstrap-server localhost:9092
+-**To simulate generation of dummy stocks:**
+  -g++ ./ingestion/feed-simulator.cpp -std=c++17 -ljsoncpp -lrdkafka -o ./ingestion/feed-simulator.exe
+-**To check the live-streamed data:**
+  -bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic order_feed --from-beginning
+
 

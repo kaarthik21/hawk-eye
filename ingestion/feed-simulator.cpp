@@ -63,7 +63,7 @@ void produce_event(rd_kafka_t* producer, rd_kafka_topic_t* topic, const std::str
 int main() {
     char errstr[512];
     rd_kafka_conf_t* conf = rd_kafka_conf_new();
-    
+
     rd_kafka_conf_set(conf, "bootstrap.servers", "localhost:9092", errstr, sizeof(errstr));
 
     rd_kafka_t* producer = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
@@ -75,12 +75,12 @@ int main() {
     rd_kafka_brokers_add(producer, "localhost:9092");
     rd_kafka_topic_t* topic = rd_kafka_topic_new(producer, TOPIC_NAME, nullptr);
 
-    std::cout << "🟢 Feed simulator started — pushing events to Kafka\n";
+    std::cout << "--- Feed simulator started — pushing events to Kafka ---\n";
 
     while (true) {
         std::string order_json = generate_order_json();
         produce_event(producer, topic, order_json);
-        std::cout << "📤 Sent: " << order_json << "\n";
+        std::cout << "Sent: " << order_json << "\n";
         std::this_thread::sleep_for(std::chrono::milliseconds(500));  // 2 orders/sec
     }
 

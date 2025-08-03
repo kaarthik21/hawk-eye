@@ -45,6 +45,13 @@
 
   - bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic order_feed --from-beginning
 
+#### To start the spoofing detector:
+
+  - Compile: g++ -std=c++17 ./engine/spoofing-detector.cpp ./streaming/kafka_producer.cpp -I/mingw64/include -L/mingw64/lib -lrdkafka -l:libjsoncpp.a -o ./engine/spoofing-detector.exe
+  - Run: ./engine/spoofing-detector.exe
+  - Check for alerts in kafka pipeline: bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic alerts --from-beginning
+
+
 
 
 

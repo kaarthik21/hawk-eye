@@ -27,6 +27,14 @@
 
 ## 📌 Setup
 
+#### Install all tech mentioned above
+
+#### make - will create al exe files in bin/
+
+#### scripts/run_all.bat will run all in separate terminals
+
+## 📌 For manual setup & runs:
+
 #### To run zookeeper & kafka:
 
   - bin/windows/zookeeper-server-start.bat config/zookeeper.properties
@@ -50,6 +58,7 @@
   - Compile: g++ -std=c++17 ./engine/spoofing-detector.cpp ./streaming/kafka_producer.cpp -I/mingw64/include -L/mingw64/lib -lrdkafka -l:libjsoncpp.a -o ./engine/spoofing-detector.exe
   - Run: ./engine/spoofing-detector.exe
   - Check for alerts in kafka pipeline: bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic alerts --from-beginning
+
 
 
 

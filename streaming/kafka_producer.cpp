@@ -30,7 +30,7 @@ void send_alert(const std::string& json_message) {
     if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
         std::cerr << "Produce failed: " << rd_kafka_err2str(err) << std::endl;
     } else {
-        std::cout << "📢 Alert sent: " << json_message << std::endl;
+        std::cout << "--- Alert sent: --- " << json_message << std::endl;
     }
 
     rd_kafka_poll(producer, 0);

@@ -34,14 +34,17 @@ bool is_spoofing(const string& user_id, long long current_time, int &cancel_coun
 
     // Count cancel orders in window
     auto temp_order = orders;
+    long long total_cancelled_quantity = 0;
     while(!temp_order.empty()) {
         total++;
-        if (temp_order.front().order_type == "CANCEL") 
+        if (temp_order.front().order_type == "CANCEL") {
             cancel_count++;
+            total_cancelled_quantity += temp_order.front().quantity;
+        }
         temp_order.pop();
     }
 
-    return total >= MIN_CANCELLED_ORDERS && ((double)cancel_count / total) > 0.7;
+    return total >= MIN_CANCELLED_ORDERS && ((double)cancel_count / total) > 0.7 && total_cancelled_quantity >= 500;
 }
 
 // Kafka error callback
@@ -111,7 +114,7 @@ int main() {
             Json::StreamWriterBuilder builder;
             std::string json_alert = Json::writeString(builder, alert);
             
-            cout << "--- Spoofing alert: ---" << json_alert << endl;
+            cout << "--- Spoofing alert ---" << endl;
 
             send_alert(json_alert);
         }

@@ -22,9 +22,15 @@ std::string random_user() {
     return "user_" + std::to_string(dist(rng));
 }
 
+
 std::string random_order_type() {
     static const std::string types[] = {"BUY", "SELL", "CANCEL"};
     return types[rand() % 3];
+}
+
+std::string random_symbol() {
+    static const std::vector<std::string> symbols = { "GOOGLE", "JANESTREET", "UBER", "APPLE", "MICROSOFT" };
+    return symbols[rand() % symbols.size()];
 }
 
 double random_price() {
@@ -40,6 +46,7 @@ std::string generate_order_json() {
     order["timestamp"] = get_timestamp();
     order["user_id"] = random_user();
     order["order_type"] = random_order_type();
+    order["symbol"] = random_symbol();
     order["price"] = random_price();
     order["quantity"] = random_quantity();
     order["order_id"] = "ORD" + std::to_string(rand() % 100000);

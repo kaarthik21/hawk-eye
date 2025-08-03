@@ -1,14 +1,13 @@
 #include <iostream>
 #include <string>
+#include <deque>
 #include <map>
-#include <queue>
-#include <chrono>
 #include <json/json.h>
 #include <librdkafka/rdkafka.h>
 
 using namespace std;
 
-extern void send_alert(const std::string& json_message); // func decl - will call send_alert() function in kafka_producer.cpp
+extern void send_alert(const std::string& json_message);
 
 struct Order {
     string order_id;
@@ -20,35 +19,38 @@ struct Order {
     string user_id;
 };
 
-map<string, queue<Order>> order_book; // userid, orders of json
+// Configurable parameters
+const int WINDOW_MS = 3000;          // Time window in milliseconds
+const int MAX_ORDERS_IN_WINDOW = 15; // More than this = suspicious
 
-// Spoofing threshold parameters
-const int ORDER_WINDOW_MS = 5000;
-const int MIN_CANCELLED_ORDERS = 3; // included upper limit for cancellation
+map<string, deque<Order>> user_order_window;
 
-bool is_spoofing(const string& user_id, long long current_time, int &cancel_count, int &total) {
-    auto& orders = order_book[user_id];
 
-    while (!orders.empty() && (current_time - orders.front().timestamp > ORDER_WINDOW_MS)) {
-        orders.pop();
+bool is_quote_stuffing(const string& user_id, long long now) {
+    auto& dq = user_order_window[user_id];
+
+    while (!dq.empty() && now - dq.front().timestamp > WINDOW_MS) {
+        dq.pop_front();
     }
 
-    // Count cancel orders in window
-    auto temp_order = orders;
-    long long total_cancelled_quantity = 0;
-    while(!temp_order.empty()) {
-        total++;
-        if (temp_order.front().order_type == "CANCEL") {
-            cancel_count++;
-            total_cancelled_quantity += temp_order.front().quantity;
-        }
-        temp_order.pop();
+    int new_orders = 0, cancels = 0, executes = 0;
+    for (const auto& o : dq) {
+        if (o.order_type == "BUY" || o.order_type == "SELL") 
+            new_orders++;
+        else if (o.order_type == "CANCEL") 
+            cancels++;
+        else if (o.order_type == "EXECUTE") 
+            executes++;
     }
 
-    return total >= MIN_CANCELLED_ORDERS && ((double)cancel_count / total) > 0.7 && total_cancelled_quantity >= 500;
+    bool high_order_rate = new_orders > MAX_ORDERS_IN_WINDOW;
+    bool high_cancel_ratio = new_orders > 0 && (cancels > 0.8 * new_orders);
+    // bool low_execution_rate = new_orders > 0 && (executes < 0.1 * new_orders);
+
+    return high_order_rate && high_cancel_ratio;
 }
 
-// Kafka error callback
+
 static void error_cb(rd_kafka_t* rk, int err, const char* reason, void* opaque) {
     fprintf(stderr, "Kafka error: %s\n", rd_kafka_err2str((rd_kafka_resp_err_t)err));
 }
@@ -56,12 +58,11 @@ static void error_cb(rd_kafka_t* rk, int err, const char* reason, void* opaque) 
 int main() {
     char errstr[512];
 
-    // Kafka consumer config
+    // 🎯 Kafka consumer setup
     rd_kafka_conf_t* conf = rd_kafka_conf_new();
     rd_kafka_conf_set(conf, "bootstrap.servers", "localhost:9092", errstr, sizeof(errstr));
-    rd_kafka_conf_set(conf, "group.id", "hawk-eye-consumer", errstr, sizeof(errstr));
+    rd_kafka_conf_set(conf, "group.id", "hawk-eye-quote-detector", errstr, sizeof(errstr));
     rd_kafka_conf_set(conf, "auto.offset.reset", "earliest", errstr, sizeof(errstr));
-    rd_kafka_conf_set(conf, "enable.auto.commit", "true", errstr, sizeof(errstr));
     rd_kafka_conf_set_error_cb(conf, error_cb);
 
     rd_kafka_t* consumer = rd_kafka_new(RD_KAFKA_CONSUMER, conf, errstr, sizeof(errstr));
@@ -71,13 +72,14 @@ int main() {
     rd_kafka_topic_partition_list_add(topics, "order_feed", -1);
     rd_kafka_subscribe(consumer, topics);
 
-    cout << "--- Spoofing detector started... ---" << endl;
+    cout << "--- Quote Stuffing Detector started... ---\n";
 
     while (true) {
         rd_kafka_message_t* msg = rd_kafka_consumer_poll(consumer, 1000);
         if (!msg) continue;
+
         if (msg->err) {
-            cerr << "Kafka message error: " << rd_kafka_message_errstr(msg) << endl;
+            cerr << "Kafka error: " << rd_kafka_message_errstr(msg) << endl;
             rd_kafka_message_destroy(msg);
             continue;
         }
@@ -89,7 +91,8 @@ int main() {
 
         auto reader = builder.newCharReader();
         if (!reader->parse(payload.c_str(), payload.c_str() + payload.size(), &root, &errs)) {
-            cerr << "JSON parse error: " << errs << endl;
+            cerr << "❌ JSON parse failed: " << errs << endl;
+            rd_kafka_message_destroy(msg);
             continue;
         }
 
@@ -102,21 +105,20 @@ int main() {
         o.timestamp = stoll(root["timestamp"].asString());
         o.user_id = root["user_id"].asString();
 
-        order_book[o.user_id].push(o);
+        user_order_window[o.user_id].push_back(o);
 
-        int cancel_count = 0, total = 0;
-        if (is_spoofing(o.user_id, o.timestamp, cancel_count, total)) {
+        if (is_quote_stuffing(o.user_id, o.timestamp)) {
+            cout << "--- Quote stuffing alert: ---" << o.user_id << " (" << user_order_window[o.user_id].size() << " orders in " << WINDOW_MS << "ms)" << endl;
+
             Json::Value alert;
             alert["user_id"] = o.user_id;
-            alert["alert_type"] = "spoofing";
+            alert["alert_type"] = "quote_stuffing";
             alert["order_id"] = o.order_id;
             alert["timestamp"] = o.timestamp;
-            alert["evidence"] = "cancel/total = " + std::to_string(cancel_count) + "/" + std::to_string(total);
+            alert["evidence"] = "Too many orders in short window";
 
-            Json::StreamWriterBuilder builder;
-            std::string json_alert = Json::writeString(builder, alert);
-            
-            cout << "--- Spoofing alert ---" << endl;
+            Json::StreamWriterBuilder writer;
+            string json_alert = Json::writeString(writer, alert);
 
             send_alert(json_alert);
         }

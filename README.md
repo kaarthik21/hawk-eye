@@ -10,7 +10,7 @@
 - 📈 **Ingestion Engine**: Consumes high-volume, real-time trading data (simulated stock feeds) via **Kafka**.
 - 🧩 **Detection Engine**: Rule-based detection (e.g., spoofing, price manipulation, quote stuffing) implemented in **C++**.
 - 🚨 **Alert System**: Publishes alerts and insights to downstream systems via **Redis**.
-- 🤖 **AI Summarization**: Uses **LangChain + OpenAI** to generate human-readable reports of flagged activity.
+- 🤖 **AI Summarization**: Uses **LangChain + GenAI** to generate human-readable reports of flagged activity.
 - 📊 **Analytics Module**: Generates real-time metrics and pattern reports for monitoring and historical analysis.
 - ⚙️ **Modular Architecture**: Built with a hybrid stack using **C++**, **Python**, **librdkafka**, **Makefile**, etc.
 
@@ -22,7 +22,7 @@
 - Kafka + Zookeeper
 - Redis
 - librdkafka
-- OpenAI API key
+- OpenAI/Gemini/Other API key
 - Optional: MSYS2 Mingw64 terminal for g++ 
 
 ## 📌 Setup
@@ -50,6 +50,7 @@
   - Compile: g++ -std=c++17 ./engine/spoofing-detector.cpp ./streaming/kafka_producer.cpp -I/mingw64/include -L/mingw64/lib -lrdkafka -l:libjsoncpp.a -o ./engine/spoofing-detector.exe
   - Run: ./engine/spoofing-detector.exe
   - Check for alerts in kafka pipeline: bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic alerts --from-beginning
+
 
 
 

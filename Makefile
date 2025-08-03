@@ -1,32 +1,25 @@
-# ------------------------------
-# CONFIG
-# ------------------------------
+
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -O2
+CXXFLAGS = -std=c++17 -I/mingw64/include
+LDFLAGS = -L/mingw64/lib -lrdkafka -l:libjsoncpp.a
 
-LDFLAGS = -L/mingw64/lib -lrdkafka
-INCLUDES = -I/mingw64/include
+ENGINE_SRC = engine/spoofing-detector.cpp engine/quote-stuffing.cpp engine/price-deviation.cpp
+ENGINE_BIN = bin/spoofing-detector.exe bin/quote-stuffing.exe bin/price-deviation.exe
 
-# ------------------------------
-# FILES
-# ------------------------------
-SRC = $(wildcard ingestion/*.cpp engine/*.cpp streaming/*.cpp benchmark/*.cpp main.cpp)
-OBJ = $(SRC:.cpp=.o)
-EXEC = hawkeye
+FEED_SRC = ingestion/feed-simulator.cpp
+FEED_BIN = bin/feed-simulator.exe
 
-# ------------------------------
-# BUILD RULES
-# ------------------------------
-all: $(EXEC)
+PRODUCER_SRC = streaming/kafka_producer.cpp
 
-$(EXEC): $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+.PHONY: all clean
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDES)
+all: $(ENGINE_BIN) $(FEED_BIN)
+
+bin/%.exe: engine/%.cpp $(PRODUCER_SRC)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(FEED_BIN): $(FEED_SRC) $(PRODUCER_SRC)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 clean:
-	rm -f $(OBJ) $(EXEC)
-
-run: all
-	./$(EXEC)
+	rm -f $(ENGINE_BIN) $(FEED_BIN)
